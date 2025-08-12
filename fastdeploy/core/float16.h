@@ -571,6 +571,13 @@ inline bool operator>=(const float16& a, const float16& b) {
 
 namespace std {
 
+#if defined(__linux__) && !defined(__ANDROID__) && defined(_LIBCPP_VERSION)
+
+// TODO: 看看是怎么一回事
+// clang + libc++ 在 linux 下无法编译下面的代码
+
+#else
+
 // Override the std::is_pod::value for float16
 // The reason is that different compilers implemented std::is_pod based on
 // different C++ standards. float16 class is a plain old data in C++11 given
@@ -600,6 +607,8 @@ template <>
 struct is_unsigned<fastdeploy::float16> {
   static const bool value = false;
 };
+
+#endif
 
 inline bool isnan(const fastdeploy::float16& a) { return fastdeploy::isnan(a); }
 
