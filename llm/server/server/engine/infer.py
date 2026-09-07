@@ -265,12 +265,14 @@ class ModelRunner:
         self.share_inputs['free_list_len'] = paddle.full(
                             shape=[1], fill_value=self.free_list_len, dtype="int32")
 
-        self.share_inputs['stop_seqs_len'] = paddle.full(shape=[self.max_stop_seqs_num,],
-                                            fill_value=0,
-                                            dtype="int32")
-        self.share_inputs['stop_seqs'] = paddle.full(shape=[self.max_stop_seqs_num, self.stop_seqs_max_len],
-                                                fill_value=-1,
-                                                dtype="int64")
+        self.share_inputs['stop_seqs_len'] = paddle.full(
+            shape=[self.args.max_batch_size, self.max_stop_seqs_num],
+            fill_value=0,
+            dtype="int32")
+        self.share_inputs['stop_seqs'] = paddle.full(
+            shape=[self.args.max_batch_size, self.max_stop_seqs_num, self.stop_seqs_max_len],
+            fill_value=-1,
+            dtype="int64")
 
         if self.reduce_dialogue_repetition:
             self.share_inputs["first_token_ids"] = paddle.full(
@@ -336,17 +338,17 @@ class ModelRunner:
             self.share_inputs["block_tables"][idx:idx + 1, :encoder_block_num] = np.array(
                                             task['block_tables'], dtype="int32")
 
+            self.share_inputs['stop_seqs_len'][idx:idx + 1, :] = 0
+            self.share_inputs['stop_seqs'][idx:idx + 1, :, :] = -1
+
             if "stop_seqs_len" in task:
                 stop_seqs_num = len(task["stop_seqs_len"])
-                if stop_seqs_num == 0 or len(task.get("stop_seqs", [])) == 0:
-                    self.share_inputs['stop_seqs_len'][:] = 0
-                    self.share_inputs['stop_seqs'][:] = -1
-                else:
+                if stop_seqs_num > 0 and len(task.get("stop_seqs", [])) > 0:
                     for i in range(stop_seqs_num, self.max_stop_seqs_num):
                         task["stop_seqs_len"].append(0)
-                    self.share_inputs['stop_seqs_len'][:] = np.array(
+                    self.share_inputs['stop_seqs_len'][idx:idx + 1, :] = np.array(
                                                             task["stop_seqs_len"], dtype="int32")
-                    self.share_inputs['stop_seqs'][:stop_seqs_num, :len(task['stop_seqs'][0])] = np.array(
+                    self.share_inputs['stop_seqs'][idx:idx + 1, :stop_seqs_num, :len(task['stop_seqs'][0])] = np.array(
                                                             task["stop_seqs"], dtype="int64")
 
             if self.is_speculate_decoding:
