@@ -92,7 +92,16 @@ def build_macos_arm64(args):
         res = subprocess.run(["brew", "--prefix", pkg], capture_output=True, text=True)
         return res.stdout.strip() if res.returncode == 0 else f"/opt/homebrew/opt/{pkg}"
 
-    opencv_prefix = get_brew_prefix("opencv")
+    # Prefer opencv@4 over opencv for API compatibility
+    opencv_prefix = None
+    for pkg in ["opencv@4", "opencv"]:
+        prefix = get_brew_prefix(pkg)
+        if os.path.exists(prefix):
+            opencv_prefix = prefix
+            break
+    if not opencv_prefix:
+        opencv_prefix = get_brew_prefix("opencv@4")
+
     ort_prefix = get_brew_prefix("onnxruntime")
     eigen_prefix = get_brew_prefix("eigen")
 
@@ -103,6 +112,9 @@ def build_macos_arm64(args):
         f"-DCMAKE_PREFIX_PATH={opencv_prefix};{ort_prefix};{eigen_prefix}",
         "-DWITH_CUDA=OFF"
     ]
+    opencv_cmake_dir = os.path.join(opencv_prefix, "lib", "cmake", "opencv4")
+    if os.path.exists(opencv_cmake_dir):
+        cmake_args.append(f"-DOpenCV_DIR={opencv_cmake_dir}")
     run_cmd(cmake_args, cwd=BUILD_DIR)
     run_cmd(["ninja"], cwd=BUILD_DIR)
     run_cmd(["cmake", "--install", ".", "--prefix", DIST_DIR], cwd=BUILD_DIR)
