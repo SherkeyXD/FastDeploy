@@ -338,12 +338,16 @@ class ModelRunner:
 
             if "stop_seqs_len" in task:
                 stop_seqs_num = len(task["stop_seqs_len"])
-                for i in range(stop_seqs_num, self.max_stop_seqs_num):
-                    task["stop_seqs_len"].append(0)
-                self.share_inputs['stop_seqs_len'][:] = np.array(
-                                                        task["stop_seqs_len"], dtype="int32")
-                self.share_inputs['stop_seqs'][:stop_seqs_num, :len(task['stop_seqs'][0])] = np.array(
-                                                        task["stop_seqs"], dtype="int64")
+                if stop_seqs_num == 0 or len(task.get("stop_seqs", [])) == 0:
+                    self.share_inputs['stop_seqs_len'][:] = 0
+                    self.share_inputs['stop_seqs'][:] = -1
+                else:
+                    for i in range(stop_seqs_num, self.max_stop_seqs_num):
+                        task["stop_seqs_len"].append(0)
+                    self.share_inputs['stop_seqs_len'][:] = np.array(
+                                                            task["stop_seqs_len"], dtype="int32")
+                    self.share_inputs['stop_seqs'][:stop_seqs_num, :len(task['stop_seqs'][0])] = np.array(
+                                                            task["stop_seqs"], dtype="int64")
 
             if self.is_speculate_decoding:
                 self.share_inputs["draft_tokens"][idx:idx + 1] = np.zeros([self.speculate_config.speculate_max_draft_token_num + 1])
