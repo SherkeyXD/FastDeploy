@@ -19,6 +19,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DEPS_DIR = os.path.join(PROJECT_ROOT, "deps")
 BUILD_DIR = os.path.join(PROJECT_ROOT, "build")
 DIST_DIR = os.path.join(PROJECT_ROOT, "dist")
+ORT_VERSION = "1.29.0"
 
 def log(msg):
     print(f"\n[build.py] ===> {msg}", flush=True)
@@ -123,10 +124,10 @@ def build_macos_arm64(args):
 def build_linux_x64(args):
     clean()
     os.makedirs(BUILD_DIR, exist_ok=True)
-    ort_tar = os.path.join(DEPS_DIR, "onnxruntime-linux-x64-1.18.0.tgz")
-    ort_dir = os.path.join(DEPS_DIR, "onnxruntime-linux-x64-1.18.0")
+    ort_tar = os.path.join(DEPS_DIR, f"onnxruntime-linux-x64-{ORT_VERSION}.tgz")
+    ort_dir = os.path.join(DEPS_DIR, f"onnxruntime-linux-x64-{ORT_VERSION}")
     if not os.path.exists(ort_dir):
-        download_file("https://github.com/microsoft/onnxruntime/releases/download/v1.18.0/onnxruntime-linux-x64-1.18.0.tgz", ort_tar)
+        download_file(f"https://github.com/microsoft/onnxruntime/releases/download/v{ORT_VERSION}/onnxruntime-linux-x64-{ORT_VERSION}.tgz", ort_tar)
         extract_archive(ort_tar, DEPS_DIR)
 
     cmake_args = [
@@ -151,11 +152,11 @@ def build_windows_x64(args):
         download_file("https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.zip", eigen_zip)
         extract_archive(eigen_zip, DEPS_DIR)
 
-    # 2. ONNXRuntime Windows x64 (1.18.0 official GitHub release)
-    ort_zip = os.path.join(DEPS_DIR, "onnxruntime-win-x64-1.18.0.zip")
-    ort_dir = os.path.join(DEPS_DIR, "onnxruntime-win-x64-1.18.0")
+    # 2. ONNXRuntime Windows x64 (official GitHub release)
+    ort_zip = os.path.join(DEPS_DIR, f"onnxruntime-win-x64-{ORT_VERSION}.zip")
+    ort_dir = os.path.join(DEPS_DIR, f"onnxruntime-win-x64-{ORT_VERSION}")
     if not os.path.exists(ort_dir):
-        download_file("https://github.com/microsoft/onnxruntime/releases/download/v1.18.0/onnxruntime-win-x64-1.18.0.zip", ort_zip)
+        download_file(f"https://github.com/microsoft/onnxruntime/releases/download/v{ORT_VERSION}/onnxruntime-win-x64-{ORT_VERSION}.zip", ort_zip)
         extract_archive(ort_zip, DEPS_DIR)
 
     # 3. OpenCV
@@ -219,13 +220,13 @@ def build_android_arm64(args):
         extract_archive(opencv_zip, DEPS_DIR)
 
     # 3. ORT Android
-    ort_aar = os.path.join(DEPS_DIR, "ort-android.aar")
-    ort_extract_dir = os.path.join(DEPS_DIR, "ort-android")
+    ort_aar = os.path.join(DEPS_DIR, f"ort-android-{ORT_VERSION}.aar")
+    ort_extract_dir = os.path.join(DEPS_DIR, f"ort-android-{ORT_VERSION}")
     ort_include_dir = os.path.join(ort_extract_dir, "headers")
     ort_lib_file = os.path.join(ort_extract_dir, "jni", "arm64-v8a", "libonnxruntime.so")
 
     if not os.path.exists(ort_lib_file):
-        download_file("https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/1.18.0/onnxruntime-android-1.18.0.aar", ort_aar)
+        download_file(f"https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/{ORT_VERSION}/onnxruntime-android-{ORT_VERSION}.aar", ort_aar)
         extract_archive(ort_aar, ort_extract_dir)
 
     toolchain = os.path.join(ndk_home, "build", "cmake", "android.toolchain.cmake")
