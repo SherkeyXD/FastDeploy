@@ -151,14 +151,13 @@ class TokenProcessor(object):
         for token_id in token_ids:
             if token_id in task["eos_token_ids"]:
                 result["is_end"] = 1
-                result["token_ids"] = []
-                result["tokens_all_num"] = len(self.all_tokens[i]) + 1
-                result["tokens_all_ids"] = self.all_tokens[i]
+                result["tokens_all_num"] = len(self.all_tokens[i]) + len(result["token_ids"]) + 1
+                result["tokens_all_ids"] = self.all_tokens[i] + result["token_ids"]
 
                 info_dict = {}
                 info_dict["req_id"] = task["req_id"]
                 info_dict["input_token_num"] = len(task["input_ids"])
-                info_dict["output_token_num"] = len(self.all_tokens[i])
+                info_dict["output_token_num"] = len(self.all_tokens[i]) + len(result["token_ids"])
                 if hasattr(task, "preprocess_start_time") and hasattr(task, "preprocess_end_time"):
                     info_dict["preprocess_cost_time"] = datetime_diff(task["preprocess_start_time"],
                                                                     task["preprocess_end_time"])
