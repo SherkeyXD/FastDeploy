@@ -341,15 +341,31 @@ class ModelRunner:
             self.share_inputs['stop_seqs_len'][idx:idx + 1, :] = 0
             self.share_inputs['stop_seqs'][idx:idx + 1, :, :] = -1
 
-            if "stop_seqs_len" in task:
-                stop_seqs_num = len(task["stop_seqs_len"])
-                if stop_seqs_num > 0 and len(task.get("stop_seqs", [])) > 0:
-                    for i in range(stop_seqs_num, self.max_stop_seqs_num):
-                        task["stop_seqs_len"].append(0)
+            if "stop_seqs_len" in task and "stop_seqs" in task:
+                raw_stop_seqs = task["stop_seqs"][:self.max_stop_seqs_num]
+                raw_stop_seqs_len = task["stop_seqs_len"][:self.max_stop_seqs_num]
+                stop_seqs_num = len(raw_stop_seqs_len)
+                if stop_seqs_num > 0 and len(raw_stop_seqs) > 0:
+                    truncated_seqs = []
+                    truncated_lens = []
+                    for s_len, s_seq in zip(raw_stop_seqs_len, raw_stop_seqs):
+                        seq_trunc = s_seq[:self.stop_seqs_max_len]
+                        truncated_seqs.append(seq_trunc)
+                        truncated_lens.append(min(s_len, self.stop_seqs_max_len))
+
+                    padded_lens = list(truncated_lens)
+                    for _ in range(len(padded_lens), self.max_stop_seqs_num):
+                        padded_lens.append(0)
                     self.share_inputs['stop_seqs_len'][idx:idx + 1, :] = np.array(
-                                                            task["stop_seqs_len"], dtype="int32")
-                    self.share_inputs['stop_seqs'][idx:idx + 1, :stop_seqs_num, :len(task['stop_seqs'][0])] = np.array(
-                                                            task["stop_seqs"], dtype="int64")
+                        padded_lens, dtype="int32")
+
+                    max_seq_len = max(len(s) for s in truncated_seqs) if truncated_seqs else 0
+                    if max_seq_len > 0:
+                        padded_seqs = [
+                            list(s) + [-1] * (max_seq_len - len(s)) for s in truncated_seqs
+                        ]
+                        self.share_inputs['stop_seqs'][idx:idx + 1, :stop_seqs_num, :max_seq_len] = np.array(
+                            padded_seqs, dtype="int64")
 
             if self.is_speculate_decoding:
                 self.share_inputs["draft_tokens"][idx:idx + 1] = np.zeros([self.speculate_config.speculate_max_draft_token_num + 1])

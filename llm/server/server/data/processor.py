@@ -366,14 +366,24 @@ class DataProcessor(BaseDataProcessor):
         """
         Update stop sequences from request.
         """
-        stop_seqs =  []
-        for seq in request.get("stop_sequences", []):
+        max_stop_seqs_num = int(os.getenv("MAX_STOP_SEQS_NUM", 5))
+        stop_seqs_max_len = int(os.getenv("STOP_SEQS_MAX_LEN", 8))
+        stop_seqs = []
+        raw_stop_sequences = request.get("stop_sequences", []) or []
+        for seq in raw_stop_sequences[:max_stop_seqs_num]:
             if seq != self.tokenizer.eos_token_id:
-                stop_seqs.append(self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(seq)))
-        request["stop_seqs"], request["stop_seqs_len"] = self.pad_batch_data(
-            stop_seqs,
-            pad_id=-1,
-            return_seq_len=True,
-            return_array=False
-        )
+                token_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(seq))
+                if len(token_ids) > stop_seqs_max_len:
+                    token_ids = token_ids[:stop_seqs_max_len]
+                stop_seqs.append(token_ids)
+        if len(stop_seqs) == 0:
+            request["stop_seqs"] = []
+            request["stop_seqs_len"] = []
+        else:
+            request["stop_seqs"], request["stop_seqs_len"] = self.pad_batch_data(
+                stop_seqs,
+                pad_id=-1,
+                return_seq_len=True,
+                return_array=False
+            )
         data_processor_logger.debug(f"processed request: {request['stop_seqs'], request['stop_seqs_len']}")
