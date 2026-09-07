@@ -70,6 +70,7 @@ class ModelRunner:
         self.cache_kvs = {}
         self.init_inputs()
 
+        self.proposer = None
         if self.is_speculate_decoding:
             logger.info(f'Using speculate decoding, method: {self.speculate_config.speculate_method}.')
             if self.speculate_config.speculate_method == "inference_with_reference":
@@ -78,8 +79,11 @@ class ModelRunner:
                     self.speculate_config.speculate_max_ngram_size,
                     self.args.max_batch_size,
                     self.args.max_seq_len)
-        else:
-            self.proposer = None
+            else:
+                logger.error(
+                    f'Unsupported speculate method: {self.speculate_config.speculate_method}, disabling speculate decoding.'
+                )
+                self.is_speculate_decoding = False
 
         self.infer_queue = TaskQueueManager(rank=self.rank, mp_num=self.nranks, port=self.config.infer_port)
 
