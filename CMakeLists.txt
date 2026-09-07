@@ -132,7 +132,7 @@ install(TARGETS fastdeploy_ppocr EXPORT fastdeploy_ppocrConfig)
 install(EXPORT fastdeploy_ppocrConfig DESTINATION share/fastdeploy_ppocr)
 install(
   DIRECTORY ${PROJECT_SOURCE_DIR}/fastdeploy
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+  DESTINATION include
   FILES_MATCHING
   PATTERN "*.h"
 )
