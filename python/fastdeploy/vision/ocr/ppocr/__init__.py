@@ -191,6 +191,24 @@ class DBDetectorPostprocessor:
             bool), "The value to set `use_dilation` must be type of bool."
         self._postprocessor.use_dilation = value
 
+    @property
+    def det_db_max_candidates(self):
+        """
+        Return the det_db_max_candidates of DBDetectorPostprocessor
+        """
+        return self._postprocessor.det_db_max_candidates
+
+    @det_db_max_candidates.setter
+    def det_db_max_candidates(self, value):
+        """Set the det_db_max_candidates for DBDetectorPostprocessor
+
+        :param: value : the det_db_max_candidates value
+        """
+        assert isinstance(
+            value,
+            int), "The value to set `det_db_max_candidates` must be type of int."
+        self._postprocessor.det_db_max_candidates = value
+
 
 class DBDetector(FastDeployModel):
     def __init__(self,
@@ -852,6 +870,158 @@ class StructureV2Layout(FastDeployModel):
     @postprocessor.setter
     def postprocessor(self, value):
         self._model.postprocessor = value
+
+
+class PPOCRv6(FastDeployModel):
+    def __init__(self, det_model=None, cls_model=None, rec_model=None):
+        """Consruct a pipeline with text detector, direction classifier and text recognizer models
+
+        :param det_model: (FastDeployModel) The detection model object created by fastdeploy.vision.ocr.DBDetector.
+        :param cls_model: (FastDeployModel) The classification model object created by fastdeploy.vision.ocr.Classifier.
+        :param rec_model: (FastDeployModel) The recognition model object created by fastdeploy.vision.ocr.Recognizer.
+        """
+        assert det_model is not None and rec_model is not None, "The det_model and rec_model cannot be None."
+        if cls_model is None:
+            self.system_ = C.vision.ocr.PPOCRv6(det_model._model,
+                                                rec_model._model)
+        else:
+            self.system_ = C.vision.ocr.PPOCRv6(
+                det_model._model, cls_model._model, rec_model._model)
+
+    def clone(self):
+        """Clone PPOCRv6 pipeline object
+        :return: a new PPOCRv6 pipeline object
+        """
+
+        class PPOCRv6Clone(PPOCRv6):
+            def __init__(self, system):
+                self.system_ = system
+
+        clone_model = PPOCRv6Clone(self.system_.clone())
+        return clone_model
+
+    def predict(self, input_image):
+        """Predict an input image
+        :param input_image: (numpy.ndarray)The input image data, 3-D array with layout HWC, BGR format
+        :return: OCRResult
+        """
+        return self.system_.predict(input_image)
+
+    def batch_predict(self, images):
+        """Predict a batch of input image
+        :param images: (list of numpy.ndarray) The input image list, each element is a 3-D array with layout HWC, BGR format
+        :return: OCRBatchResult
+        """
+        return self.system_.batch_predict(images)
+
+    @property
+    def cls_batch_size(self):
+        return self.system_.cls_batch_size
+
+    @cls_batch_size.setter
+    def cls_batch_size(self, value):
+        assert isinstance(
+            value,
+            int), "The value to set `cls_batch_size` must be type of int."
+        self.system_.cls_batch_size = value
+
+    @property
+    def rec_batch_size(self):
+        return self.system_.rec_batch_size
+
+    @rec_batch_size.setter
+    def rec_batch_size(self, value):
+        assert isinstance(
+            value,
+            int), "The value to set `rec_batch_size` must be type of int."
+        self.system_.rec_batch_size = value
+
+
+class PPOCRSystemv6(PPOCRv6):
+    def __init__(self, det_model=None, cls_model=None, rec_model=None):
+        logging.warning(
+            "DEPRECATED: fd.vision.ocr.PPOCRSystemv6 is deprecated, "
+            "please use fd.vision.ocr.PPOCRv6 instead.")
+        super(PPOCRSystemv6, self).__init__(det_model, cls_model, rec_model)
+
+    def predict(self, input_image):
+        return super(PPOCRSystemv6, self).predict(input_image)
+
+
+class PPOCRv5(FastDeployModel):
+    def __init__(self, det_model=None, cls_model=None, rec_model=None):
+        """Consruct a pipeline with text detector, direction classifier and text recognizer models
+
+        :param det_model: (FastDeployModel) The detection model object created by fastdeploy.vision.ocr.DBDetector.
+        :param cls_model: (FastDeployModel) The classification model object created by fastdeploy.vision.ocr.Classifier.
+        :param rec_model: (FastDeployModel) The recognition model object created by fastdeploy.vision.ocr.Recognizer.
+        """
+        assert det_model is not None and rec_model is not None, "The det_model and rec_model cannot be None."
+        if cls_model is None:
+            self.system_ = C.vision.ocr.PPOCRv5(det_model._model,
+                                                rec_model._model)
+        else:
+            self.system_ = C.vision.ocr.PPOCRv5(
+                det_model._model, cls_model._model, rec_model._model)
+
+    def clone(self):
+        """Clone PPOCRv5 pipeline object
+        :return: a new PPOCRv5 pipeline object
+        """
+
+        class PPOCRv5Clone(PPOCRv5):
+            def __init__(self, system):
+                self.system_ = system
+
+        clone_model = PPOCRv5Clone(self.system_.clone())
+        return clone_model
+
+    def predict(self, input_image):
+        """Predict an input image
+        :param input_image: (numpy.ndarray)The input image data, 3-D array with layout HWC, BGR format
+        :return: OCRResult
+        """
+        return self.system_.predict(input_image)
+
+    def batch_predict(self, images):
+        """Predict a batch of input image
+        :param images: (list of numpy.ndarray) The input image list, each element is a 3-D array with layout HWC, BGR format
+        :return: OCRBatchResult
+        """
+        return self.system_.batch_predict(images)
+
+    @property
+    def cls_batch_size(self):
+        return self.system_.cls_batch_size
+
+    @cls_batch_size.setter
+    def cls_batch_size(self, value):
+        assert isinstance(
+            value,
+            int), "The value to set `cls_batch_size` must be type of int."
+        self.system_.cls_batch_size = value
+
+    @property
+    def rec_batch_size(self):
+        return self.system_.rec_batch_size
+
+    @rec_batch_size.setter
+    def rec_batch_size(self, value):
+        assert isinstance(
+            value,
+            int), "The value to set `rec_batch_size` must be type of int."
+        self.system_.rec_batch_size = value
+
+
+class PPOCRSystemv5(PPOCRv5):
+    def __init__(self, det_model=None, cls_model=None, rec_model=None):
+        logging.warning(
+            "DEPRECATED: fd.vision.ocr.PPOCRSystemv5 is deprecated, "
+            "please use fd.vision.ocr.PPOCRv5 instead.")
+        super(PPOCRSystemv5, self).__init__(det_model, cls_model, rec_model)
+
+    def predict(self, input_image):
+        return super(PPOCRSystemv5, self).predict(input_image)
 
 
 class PPOCRv4(FastDeployModel):
