@@ -42,30 +42,20 @@ class FASTDEPLOY_DECL PPOCRv6 : public PPOCRv5 {
    */
   PPOCRv6(fastdeploy::vision::ocr::DBDetector* det_model,
           fastdeploy::vision::ocr::Classifier* cls_model,
-          fastdeploy::vision::ocr::Recognizer* rec_model)
-          : PPOCRv5(det_model, cls_model, rec_model) {}
+          fastdeploy::vision::ocr::Recognizer* rec_model);
   /** \brief Classification model is optional, so this function is set up the detection model path and recognition model path respectively.
    *
    * \param[in] det_model Path of detection model, e.g ./ch_PP-OCRv6_det_infer
    * \param[in] rec_model Path of recognition model, e.g ./ch_PP-OCRv6_rec_infer
    */
   PPOCRv6(fastdeploy::vision::ocr::DBDetector* det_model,
-          fastdeploy::vision::ocr::Recognizer* rec_model)
-          : PPOCRv5(det_model, rec_model) {}
+          fastdeploy::vision::ocr::Recognizer* rec_model);
 
   /** \brief Clone a new PPOCRv6 with less memory usage when multiple instances of the same model are created
    *
    * \return new PPOCRv6* type unique pointer
    */
-  std::unique_ptr<PPOCRv6> Clone() const {
-    std::unique_ptr<PPOCRv6> clone_model = utils::make_unique<PPOCRv6>(PPOCRv6(*this));
-    clone_model->detector_ = detector_->Clone().release();
-    if (classifier_ != nullptr) {
-      clone_model->classifier_ = classifier_->Clone().release();
-    }
-    clone_model->recognizer_ = recognizer_->Clone().release();
-    return clone_model;
-  }
+  std::unique_ptr<PPOCRv6> Clone() const;
 };
 
 }  // namespace pipeline
