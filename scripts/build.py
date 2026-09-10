@@ -3,7 +3,7 @@
 """
 Cross-platform build and packaging script for FastDeploy (fastdeploy_ppocr).
 Usage:
-    python scripts/build.py --target [macos-arm64 | linux-x64 | windows-x64 | windows-arm64 | android-arm64 | python-wheel]
+    python scripts/build.py --target [macos-arm64 | linux-x64 | windows-x64 | android-arm64]
 """
 
 import os
@@ -29,7 +29,7 @@ def run_cmd(cmd, cwd=PROJECT_ROOT, env=None):
     cmd_env = os.environ.copy()
     if env:
         cmd_env.update(env)
-    ret = subprocess.run(cmd, cwd=cwd, env=cmd_env, shell=isinstance(cmd, str))
+    ret = subprocess.run(cmd, cwd=cwd, env=cmd_env, shell=False)
     if ret.returncode != 0:
         print(f"\n[build.py] Error: command failed with return code {ret.returncode}", file=sys.stderr)
         sys.exit(ret.returncode)
@@ -53,7 +53,10 @@ def extract_archive(archive_path, extract_to):
             zip_ref.extractall(extract_to)
     elif archive_path.endswith(".tar.gz") or archive_path.endswith(".tgz"):
         with tarfile.open(archive_path, 'r:gz') as tar_ref:
-            tar_ref.extractall(extract_to)
+            try:
+                tar_ref.extractall(extract_to, filter='data')
+            except TypeError:
+                tar_ref.extractall(extract_to)
     else:
         # Fallback for 7z / exe on Windows
         if shutil.which("7z"):
@@ -71,7 +74,6 @@ def package_dist(target_name, fmt="tar.gz"):
                 item_path = os.path.join(DIST_DIR, item)
                 tar.add(item_path, arcname=item)
     elif fmt == "zip":
-        archive_file = os.path.join(PROJECT_ROOT, f"{pkg_name}.zip")
         shutil.make_archive(os.path.join(PROJECT_ROOT, pkg_name), 'zip', DIST_DIR)
     log(f"Artifact created: {pkg_name}.{fmt}")
 
