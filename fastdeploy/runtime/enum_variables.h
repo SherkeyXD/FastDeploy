@@ -65,6 +65,7 @@ enum FASTDEPLOY_DECL Device {
   DIRECTML,
   COREML,
   SUNRISENPU,
+  WEBGPU,
 };
 
 /*! Deep learning model format */
@@ -107,7 +108,8 @@ static std::map<Device, std::vector<Backend>>
   {Device::ASCEND, {Backend::LITE}},
   {Device::SOPHGOTPUD, {Backend::SOPHGOTPU}},
   {Device::DIRECTML, {Backend::ORT}},
-  {Device::COREML, {Backend::ORT}}
+  {Device::COREML, {Backend::ORT}},
+  {Device::WEBGPU, {Backend::ORT}}
 };
 
 inline bool Supported(ModelFormat format, Backend backend) {

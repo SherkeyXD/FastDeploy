@@ -117,8 +117,19 @@ set_target_properties(
 
 target_include_directories(fastdeploy_ppocr INTERFACE 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>  # for build
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDE}>  # for install
+    # Headers are installed to <prefix>/include (see the install() below).
+    # CMAKE_INSTALL_INCLUDE is not defined in this project, so spell the
+    # relative path out: an empty INSTALL_INTERFACE leaves the imported target
+    # without any include directory for consumers.
+    $<INSTALL_INTERFACE:include>  # for install
 )
+
+# WITH_WEBGPU is a capability of this source tree, not a build switch: the
+# WebGPU device is always compiled in and gated at runtime by
+# Ort::GetAvailableProviders() (the macro is declared in core/config.h
+# alongside WITH_DIRECTML/WITH_COREML). Exporting it as a PUBLIC definition
+# lets consumers check it as well.
+target_compile_definitions(fastdeploy_ppocr PUBLIC WITH_WEBGPU)
 
 target_link_libraries(fastdeploy_ppocr PUBLIC ${OpenCV_LIBS} PRIVATE onnxruntime::onnxruntime)
 if(WITH_CUDA)
@@ -129,7 +140,16 @@ if(ANDROID)
 endif()
 
 install(TARGETS fastdeploy_ppocr EXPORT fastdeploy_ppocrConfig)
-install(EXPORT fastdeploy_ppocrConfig DESTINATION share/fastdeploy_ppocr)
+include(CMakePackageConfigHelpers)
+install(EXPORT fastdeploy_ppocrConfig
+    DESTINATION share/fastdeploy_ppocr
+    FILE fastdeploy_ppocrTargets.cmake)
+configure_package_config_file(
+    cmake/fastdeploy_ppocrConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/fastdeploy_ppocrConfig.cmake
+    INSTALL_DESTINATION share/fastdeploy_ppocr)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/fastdeploy_ppocrConfig.cmake
+    DESTINATION share/fastdeploy_ppocr)
 install(
   DIRECTORY ${PROJECT_SOURCE_DIR}/fastdeploy
   DESTINATION include

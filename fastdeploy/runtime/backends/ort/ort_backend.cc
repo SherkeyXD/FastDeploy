@@ -190,15 +190,54 @@ bool OrtBackend::BuildOption(const OrtBackendOption& option) {
     return true;
   }
 #endif
+  // If use WebGPU
+  else if (option.device == Device::WEBGPU) {
+    auto all_providers = Ort::GetAvailableProviders();
+    bool support_webgpu = false;
+    std::string providers_msg = "";
+    for (size_t i = 0; i < all_providers.size(); ++i) {
+      providers_msg = providers_msg + all_providers[i] + ", ";
+      if (all_providers[i] == "WebGpuExecutionProvider") {
+        support_webgpu = true;
+      }
+    }
+
+    if (!support_webgpu) {
+      FDWARNING << "Compiled fastdeploy with onnxruntime doesn't "
+                   "support WebGPU, the available providers are "
+                << providers_msg << "will fallback to CPUExecutionProvider."
+                << "Please check if onnxruntime is built with WebGPU support."
+                << std::endl;
+      option_.device = Device::CPU;
+    } else {
+      try {
+        // OrtSessionOptionsAppendExecutionProvider turns each key into
+        // "ep.webgpuexecutionprovider.<key>", and the WebGPU EP only reads the
+        // camelCase key "deviceId". A snake_case "device_id" is silently
+        // ignored by ONNX Runtime.
+        std::unordered_map<std::string, std::string> webgpu_options;
+        if (option_.device_id > 0) {
+          webgpu_options["deviceId"] = std::to_string(option_.device_id);
+        }
+        session_options_.AppendExecutionProvider("WebGPU", webgpu_options);
+      } catch (const std::exception& e) {
+        FDERROR << "Failed to append WebGPU execution provider: " << e.what()
+                << std::endl;
+        return false;
+      }
+    }
+    return true;
+  }
 
   return true;
 }
 
 bool OrtBackend::Init(const RuntimeOption& option) {
   if (option.device != Device::CPU && option.device != Device::CUDA &&
-      option.device != Device::DIRECTML && option.device != Device::COREML) {
+      option.device != Device::DIRECTML && option.device != Device::COREML &&
+      option.device != Device::WEBGPU) {
     FDERROR
-        << "Backend::ORT only supports Device::CPU/Device::CUDA/Device::DIRECTML/Device::COREML, but now its "
+        << "Backend::ORT only supports Device::CPU/Device::CUDA/Device::DIRECTML/Device::COREML/Device::WEBGPU, but now its "
         << option.device << "." << std::endl;
     return false;
   }
@@ -529,6 +568,14 @@ void OrtBackend::InitCustomOperators() {
     } else if (option_.device == Device::COREML) {
       AdaptivePool2dOp* adaptive_pool2d =
           new AdaptivePool2dOp{"CoreMLExecutionProvider"};
+      custom_operators_.push_back(adaptive_pool2d);
+    } else if (option_.device == Device::WEBGPU) {
+      // Must be the EP type name registered by ONNX Runtime
+      // ("WebGpuExecutionProvider"), not the "WebGPU" short name accepted by
+      // SessionOptions::AppendExecutionProvider: custom kernels are looked up
+      // by Node::GetExecutionProviderType().
+      AdaptivePool2dOp* adaptive_pool2d =
+          new AdaptivePool2dOp{"WebGpuExecutionProvider"};
       custom_operators_.push_back(adaptive_pool2d);
     } else {
       AdaptivePool2dOp* adaptive_pool2d =
