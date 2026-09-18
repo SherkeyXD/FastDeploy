@@ -8,6 +8,20 @@ find_package(onnxruntime REQUIRED)
 find_package(Eigen3 REQUIRED)
 message("OpenCV_LIBS: ${OpenCV_LIBS} ${OPENCV_core_FOUND} ${OPENCV_WORLD_FOUND}")
 
+# ONNX Runtime flattens the headers of every enabled execution provider into
+# <onnxruntime/>, so <onnxruntime/webgpu_provider_factory.h> exists exactly when
+# that ONNX Runtime was built with the WebGPU EP (the same signal the Maa
+# side uses for DirectML/CoreML). FastDeploy always compiles the WebGPU device
+# path and falls back to Device::CPU at runtime when the EP is unavailable, so
+# this reports what the linked ONNX Runtime can actually do -- pick the ONNX
+# Runtime accordingly if you need the device.
+if(EXISTS "${onnxruntime_INCLUDE_DIR}/webgpu_provider_factory.h")
+    set(WITH_WEBGPU ON)
+else()
+    set(WITH_WEBGPU OFF)
+endif()
+message(STATUS "WITH_WEBGPU: ${WITH_WEBGPU} (onnxruntime_INCLUDE_DIR=${onnxruntime_INCLUDE_DIR})")
+
 option(WITH_CUDA "Whether WITH_CUDA=ON, will enable onnxruntime-gpu/paddle-inference-gpu" OFF)
 option(PRINT_INFO "Print more debug info while running" OFF)
 
@@ -124,13 +138,6 @@ target_include_directories(fastdeploy_ppocr INTERFACE
     $<INSTALL_INTERFACE:include>  # for install
 )
 
-# WITH_WEBGPU is a capability of this source tree, not a build switch: the
-# WebGPU device is always compiled in and gated at runtime by
-# Ort::GetAvailableProviders() (the macro is declared in core/config.h
-# alongside WITH_DIRECTML/WITH_COREML). Exporting it as a PUBLIC definition
-# lets consumers check it as well.
-target_compile_definitions(fastdeploy_ppocr PUBLIC WITH_WEBGPU)
-
 target_link_libraries(fastdeploy_ppocr PUBLIC ${OpenCV_LIBS} PRIVATE onnxruntime::onnxruntime)
 if(WITH_CUDA)
     target_link_libraries(fastdeploy_ppocr PRIVATE ${CUDA_LIB})
@@ -144,6 +151,17 @@ include(CMakePackageConfigHelpers)
 install(EXPORT fastdeploy_ppocrConfig
     DESTINATION share/fastdeploy_ppocr
     FILE fastdeploy_ppocrTargets.cmake)
+# A static build leaks $<LINK_ONLY:onnxruntime::onnxruntime> into the exported
+# interface, so the package config has to help consumers materialize that
+# target; ship the Find module it needs.
+get_target_property(FASTDEPLOY_PPOCR_LIBRARY_TYPE fastdeploy_ppocr TYPE)
+if(FASTDEPLOY_PPOCR_LIBRARY_TYPE STREQUAL "STATIC_LIBRARY")
+    set(FASTDEPLOY_PPOCR_STATIC ON)
+else()
+    set(FASTDEPLOY_PPOCR_STATIC OFF)
+endif()
+install(FILES cmake/Findonnxruntime.cmake
+    DESTINATION share/fastdeploy_ppocr/cmake)
 configure_package_config_file(
     cmake/fastdeploy_ppocrConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/fastdeploy_ppocrConfig.cmake
