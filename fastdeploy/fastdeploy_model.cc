@@ -219,7 +219,7 @@ bool FastDeployModel::InitRuntimeWithSpecifiedDevice() {
 #endif
   }
   FDERROR << "Only support "
-             "CPU/GPU/IPU/RKNPU/HORIZONNPU/TIMVX/KunlunXin/ASCEND/DirectML/CoreML now."
+             "CPU/GPU/IPU/RKNPU/HORIZONNPU/TIMVX/KunlunXin/ASCEND/DirectML/CoreML/WebGPU now."
           << std::endl;
   return false;
 }

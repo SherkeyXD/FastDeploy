@@ -34,7 +34,18 @@
   #include <coreml_provider_factory.h>
 #endif
 
+// The linked ONNX Runtime installs <webgpu_provider_factory.h> only when the
+// WebGPU EP is part of that build (see get_c_cxx_api_headers() in ORT's
+// cmake/onnxruntime.cmake). That file is a pure marker -- it declares nothing,
+// and unlike DML/CoreML there is no dedicated WebGPU factory to call: the EP
+// goes through the generic SessionOptionsAppendExecutionProvider. So probe it
+// instead of including it.
+#if defined(WITH_WEBGPU) && __has_include(<webgpu_provider_factory.h>)
+  #define ENABLE_WEBGPU
+#endif
+
 #include <memory>
+#include <unordered_map>
 
 namespace fastdeploy {
 
@@ -190,6 +201,7 @@ bool OrtBackend::BuildOption(const OrtBackendOption& option) {
     return true;
   }
 #endif
+#ifdef ENABLE_WEBGPU
   // If use WebGPU
   else if (option.device == Device::WEBGPU) {
     auto all_providers = Ort::GetAvailableProviders();
@@ -228,6 +240,20 @@ bool OrtBackend::BuildOption(const OrtBackendOption& option) {
     }
     return true;
   }
+#else
+  // The ONNX Runtime this build links does not ship the WebGPU EP (see the
+  // provider factory probe at the top of this file), so the device is
+  // unavailable. Keep the same soft-fallback contract as the runtime check
+  // above, but say why.
+  else if (option.device == Device::WEBGPU) {
+    FDWARNING << "FastDeploy was built without WebGPU support: the linked "
+                 "onnxruntime has no WebGpuExecutionProvider. Fallback to "
+                 "CPUExecutionProvider. Rebuild against an ONNX Runtime built "
+                 "with --use_webgpu to use Device::WEBGPU."
+              << std::endl;
+    option_.device = Device::CPU;
+  }
+#endif
 
   return true;
 }

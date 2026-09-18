@@ -30,7 +30,7 @@ namespace fastdeploy {
 enum Backend {
   UNKNOWN,  ///< Unknown inference backend
   ORT,  //< ONNX Runtime, support Paddle/ONNX format model,
-  //< CPU/ Nvidia GPU DirectML/CoreML
+  //< CPU/ Nvidia GPU DirectML/CoreML/WebGPU
   TRT,  ///< TensorRT, support Paddle/ONNX format model, Nvidia GPU only
   PDINFER,  ///< Paddle Inference, support Paddle format model, CPU / Nvidia GPU
   POROS,    ///< Poros, support TorchScript format model, CPU / Nvidia GPU

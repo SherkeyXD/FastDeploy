@@ -78,7 +78,7 @@ Ort::Value CreateOrtValue(FDTensor& tensor) {
         tensor.shape.size(), GetOrtDtype(tensor.dtype));
     return ort_value;
   }
-  else {  // not support coreml now
+  else {  // CoreML/WebGPU/CPU tensors live in host memory
     Ort::MemoryInfo memory_info("Cpu", OrtDeviceAllocator, 0, OrtMemTypeDefault);
     auto ort_value = Ort::Value::CreateTensor(
         memory_info, tensor.Data(), tensor.Nbytes(), tensor.shape.data(),
